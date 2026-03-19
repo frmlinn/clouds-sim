@@ -27,6 +27,8 @@ jobs:
       - name: Build and Minify Files
         run: |
           mkdir -p dist/js dist/css
+
+          touch dist/.nojekyll
         
           cp index.html dist/index.html
           cp -r assets dist/assets
