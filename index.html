@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Volumetric Clouds Simulation | WebGL 2</title>
+    <link rel="stylesheet" href="css/style.css">
+    
+    <script src="js/gl-utils.js" defer></script>
+    <script src="js/noise-generator.js" defer></script>
+    <script src="js/main.js" defer></script>
+</head>
+<body>
+
+<div id="app-wrapper">
+    
+    <div id="viewport">
+        <canvas id="glcanvas"></canvas>
+    </div>
+    
+    <div id="ui-layer">
+        
+        <div id="perf-stats" aria-live="polite">Initializing engine...</div>
+        
+        <div id="watermark">Inspired by the work of Sebastian Lague</div>
+        
+        <div id="help-text">
+            Click/Drag: Orbit | Scroll: Zoom
+        </div>
+
+        <div id="gimbal-hud" aria-label="Directional Light Control">
+            <div class="gimbal-label">Sun Direction</div>
+            <div id="gimbal-circle">
+                <div id="gimbal-dot"></div>
+            </div>
+        </div>
+
+        <button type="button" id="toggle-panel" aria-label="Toggle Settings Panel">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M4 6h16M4 12h16M4 18h16"></path>
+            </svg>
+        </button>
+
+        <aside id="panel" aria-label="Properties Inspector">
+            <header class="panel-header">
+                <h2>Volumetric Cloud Material</h2>
+                <button type="button" id="btn_pause" class="btn-tool" aria-label="Pause Simulation">Pause</button>
+            </header>
+
+            <div class="panel-content">
+                
+                <details class="inspector-section" open>
+                    <summary>Shape (Base)</summary>
+                    <div class="section-body">
+                        <div class="prop-row">
+                            <label for="in_coverage">Coverage</label>
+                            <div class="prop-control">
+                                <input type="range" id="in_coverage" min="0" max="1" step="0.01">
+                                <span class="val-display" id="val_coverage"></span>
+                            </div>
+                        </div>
+                        <div class="prop-row">
+                            <label for="in_densityMult">Density Multiplier</label>
+                            <div class="prop-control">
+                                <input type="range" id="in_densityMult" min="0.1" max="20.0" step="0.1">
+                                <span class="val-display" id="val_densityMult"></span>
+                            </div>
+                        </div>
+                        <div class="prop-row">
+                            <label for="in_baseScale" title="Requires re-baking">Noise Scale</label>
+                            <div class="prop-control">
+                                <input type="range" id="in_baseScale" min="0.5" max="3.0" step="0.1">
+                                <span class="val-display" id="val_baseScale"></span>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="inspector-section" open>
+                    <summary>Erosion (Detail)</summary>
+                    <div class="section-body">
+                        <div class="prop-row">
+                            <label for="in_detailScale">Detail Scale</label>
+                            <div class="prop-control">
+                                <input type="range" id="in_detailScale" min="1.0" max="10.0" step="0.1">
+                                <span class="val-display" id="val_detailScale"></span>
+                            </div>
+                        </div>
+                        <div class="prop-row">
+                            <label for="in_detailWeight">Erosion Strength</label>
+                            <div class="prop-control">
+                                <input type="range" id="in_detailWeight" min="0.0" max="1.0" step="0.01">
+                                <span class="val-display" id="val_detailWeight"></span>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="inspector-section" open>
+                    <summary>Lighting & Color</summary>
+                    <div class="section-body">
+                        <div class="prop-row">
+                            <label for="in_lightAbsorb">Extinction</label>
+                            <div class="prop-control">
+                                <input type="range" id="in_lightAbsorb" min="0.1" max="3.0" step="0.05">
+                                <span class="val-display" id="val_lightAbsorb"></span>
+                            </div>
+                        </div>
+                        <div class="prop-row">
+                            <label for="in_scattering">HG Scattering</label>
+                            <div class="prop-control">
+                                <input type="range" id="in_scattering" min="0.0" max="0.95" step="0.01">
+                                <span class="val-display" id="val_scattering"></span>
+                            </div>
+                        </div>
+                        <div class="prop-row">
+                            <label for="in_cloudColor">Albedo</label>
+                            <div class="prop-control">
+                                <input type="color" id="in_cloudColor">
+                            </div>
+                        </div>
+                        <div class="prop-row">
+                            <label for="in_skyColor">Sky Zenith</label>
+                            <div class="prop-control">
+                                <input type="color" id="in_skyColor">
+                            </div>
+                        </div>
+                    </div>
+                </details>
+
+                <details class="inspector-section" open>
+                    <summary>Engine Settings</summary>
+                    <div class="section-body">
+                        <div class="prop-row">
+                            <label for="in_resScale">Res. Scale</label>
+                            <div class="prop-control">
+                                <input type="range" id="in_resScale" min="0.2" max="1.0" step="0.05">
+                                <span class="val-display" id="val_resScale"></span>
+                            </div>
+                        </div>
+                        <div class="prop-row">
+                            <label for="in_steps">Ray Steps</label>
+                            <div class="prop-control">
+                                <input type="range" id="in_steps" min="15" max="100" step="1">
+                                <span class="val-display" id="val_steps"></span>
+                            </div>
+                        </div>
+                        <div class="prop-row">
+                            <label for="in_windGlobal">Wind Speed</label>
+                            <div class="prop-control">
+                                <input type="range" id="in_windGlobal" min="0.0" max="2.0" step="0.1">
+                                <span class="val-display" id="val_windGlobal"></span>
+                            </div>
+                        </div>
+                    </div>
+                </details>
+            </div>
+        </aside>
+    </div>
+</div>
+
+</body>
+</html>
