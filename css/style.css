@@ -1,9 +1,10 @@
 /* ==========================================================================
-   Unity/Blender Style Variables
+   Engine UI Variables (Unity/Blender Theme)
    ========================================================================== */
-:root {
+   :root {
+    /* Color Palette */
     --bg-base: #1e1e1e;
-    --bg-panel: rgba(40, 40, 40, 0.95); /* Slight transparency for overlay effect */
+    --bg-panel: rgba(40, 40, 40, 0.92);
     --bg-section: #333333;
     --bg-input: #1a1a1a;
     
@@ -18,15 +19,25 @@
     --accent-blue-hover: #5a8bd4;
     --accent-warning: #cc6633;
     
-    --ui-radius: 3px;
+    /* Unified Spacing & Metrics */
+    --ui-radius: 4px;
+    --space-sm: 4px;
+    --space-md: 8px;
+    --space-lg: 16px;
+    --panel-width: clamp(340px, 25vw, 420px); /* Slightly slimmer for better viewport ratio */
+    
     --font-ui: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
 }
 
-* { box-sizing: border-box; }
+* { 
+    box-sizing: border-box; 
+}
 
 body, html {
-    margin: 0; padding: 0;
-    width: 100vw; height: 100vh;
+    margin: 0; 
+    padding: 0;
+    width: 100vw; 
+    height: 100vh;
     overflow: hidden;
     background-color: var(--bg-base);
     font-family: var(--font-ui);
@@ -40,47 +51,56 @@ body, html {
    ========================================================================== */
 #app-wrapper {
     position: relative;
-    width: 100%; height: 100%;
+    width: 100%; 
+    height: 100%;
     overflow: hidden;
 }
 
-/* 3D Viewport: Always 100%, never resizes when UI changes */
+/* 3D Viewport: Render Target Canvas */
 #viewport {
     position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
+    top: 0; 
+    left: 0;
+    width: 100%; 
+    height: 100%;
     background: #000;
     z-index: 1;
 }
 
 #glcanvas {
     display: block;
-    width: 100%; height: 100%;
+    width: 100%; 
+    height: 100%;
     cursor: grab;
 }
-#glcanvas:active { cursor: grabbing; }
 
-/* UI Layer: Floats above canvas. Pointer events pass through by default */
-#ui-layer {
-    position: absolute;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    z-index: 10;
-    pointer-events: none; /* Let clicks pass to canvas */
-    display: flex;
-    justify-content: flex-end; /* Align panel to the right */
+#glcanvas:active { 
+    cursor: grabbing; 
 }
 
-/* Re-enable interactions for actual UI elements */
+/* UI Layer: Passthrough by default */
+#ui-layer {
+    position: absolute;
+    top: 0; 
+    left: 0;
+    width: 100%; 
+    height: 100%;
+    z-index: 10;
+    pointer-events: none;
+    display: flex;
+    justify-content: flex-end;
+}
+
+/* Re-enable pointer events for interactive elements */
 #panel, #toggle-panel, #gimbal-hud {
     pointer-events: auto;
 }
 
 /* ==========================================================================
-   Side Panel (Inspector)
+   Side Panel (Properties Inspector)
    ========================================================================== */
 #panel {
-    width: 350px;
+    width: var(--panel-width);
     height: 100%;
     flex-shrink: 0;
     background: var(--bg-panel);
@@ -99,23 +119,27 @@ body, html {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    padding: 10px 12px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg-section);
     border-bottom: 1px solid var(--border-dark);
 }
 
 .panel-header h2 {
-    margin: 0; font-size: 13px; font-weight: 600; color: var(--text-bright);
+    margin: 0; 
+    font-size: 14px; 
+    font-weight: 600; 
+    color: var(--text-bright);
 }
 
 .panel-content {
     overflow-y: auto;
+    overflow-x: hidden;
     flex-grow: 1;
 }
 
-.panel-content::-webkit-scrollbar { width: 8px; }
+.panel-content::-webkit-scrollbar { width: var(--space-md); }
 .panel-content::-webkit-scrollbar-track { background: var(--bg-panel); }
-.panel-content::-webkit-scrollbar-thumb { background: #555; border-radius: 4px; border: 2px solid var(--bg-panel); }
+.panel-content::-webkit-scrollbar-thumb { background: var(--border-light); border-radius: var(--ui-radius); }
 
 /* Collapsible Sections */
 .inspector-section {
@@ -123,21 +147,23 @@ body, html {
 }
 
 .inspector-section summary {
-    padding: 8px 12px;
+    padding: var(--space-md) var(--space-lg);
     background: var(--bg-section);
     font-weight: 600;
     cursor: pointer;
     list-style: none;
     display: flex;
     align-items: center;
+    font-size: 12px;
+    color: var(--text-bright);
 }
 
 .inspector-section summary::before {
     content: "▶";
     font-size: 10px;
-    margin-right: 8px;
+    margin-right: var(--space-md);
     color: var(--text-muted);
-    transition: transform 0.2s;
+    transition: transform 0.2s ease;
 }
 
 .inspector-section[open] summary::before {
@@ -145,50 +171,52 @@ body, html {
 }
 
 .section-body {
-    padding: 8px 12px;
+    padding: var(--space-lg);
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: var(--space-md); /* Unified gap between rows */
 }
 
 /* ==========================================================================
-   UI Controls
+   UI Controls (Sliders, Colors, Displays)
    ========================================================================== */
 .prop-row {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    min-height: 24px;
+    min-height: 28px;
+    gap: var(--space-md);
 }
 
 .prop-row label {
-    flex: 0 0 45%;
+    flex: 1 1 auto;
     color: var(--text-main);
+    font-size: 12px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
 }
 
 .prop-control {
-    flex: 1;
+    flex: 0 1 65%;
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: var(--space-md);
 }
 
 .val-display {
-    width: 35px;
-    text-align: right;
+    width: 38px;
+    text-align: center;
     font-family: monospace;
     color: var(--text-bright);
     background: var(--bg-input);
-    padding: 2px 4px;
+    padding: var(--space-sm);
     border: 1px solid var(--border-dark);
     border-radius: var(--ui-radius);
     font-size: 11px;
 }
 
-/* Inputs & Buttons */
+/* Custom Inputs */
 input[type=range] {
     -webkit-appearance: none;
     flex-grow: 1;
@@ -198,119 +226,156 @@ input[type=range] {
     border-radius: 2px;
     outline: none;
 }
+
 input[type=range]::-webkit-slider-thumb {
     -webkit-appearance: none;
-    width: 12px; height: 12px;
+    width: 14px; 
+    height: 14px;
     background: var(--text-muted);
     border-radius: 50%;
     cursor: ew-resize;
+    transition: background 0.1s;
 }
-input[type=range]::-webkit-slider-thumb:hover { background: var(--text-bright); }
+
+input[type=range]::-webkit-slider-thumb:hover { 
+    background: var(--text-bright); 
+}
 
 input[type=color] {
     -webkit-appearance: none;
     border: 1px solid var(--border-dark);
-    width: 100%; height: 22px;
+    width: 100%; 
+    height: 24px;
     padding: 0;
     border-radius: var(--ui-radius);
     cursor: pointer;
 }
+
 input[type=color]::-webkit-color-swatch-wrapper { padding: 0; }
 input[type=color]::-webkit-color-swatch { border: none; border-radius: 2px; }
 
+/* Buttons */
 .btn-tool {
     background: var(--bg-section);
     color: var(--text-bright);
-    border: 1px solid var(--border-dark);
-    padding: 4px 12px;
+    border: 1px solid var(--border-light);
+    padding: var(--space-sm) var(--space-lg);
     border-radius: var(--ui-radius);
     cursor: pointer;
     font-size: 11px;
     font-weight: 600;
     text-transform: uppercase;
     letter-spacing: 0.5px;
-    transition: background 0.2s;
+    transition: all 0.2s ease;
 }
-.btn-tool:hover { background: var(--accent-blue-hover); color: white; }
-/* Estilo cuando está en pausa (Play) */
-.btn-tool.paused { background: var(--accent-warning); color: white; border-color: transparent; }
+
+.btn-tool:hover { 
+    background: var(--accent-blue-hover); 
+    border-color: var(--accent-blue-hover);
+}
+
+.btn-tool.paused { 
+    background: var(--accent-warning); 
+    border-color: var(--accent-warning);
+}
 
 /* Floating Toggle Button */
 #toggle-panel {
     position: absolute;
-    top: 10px; right: 360px; 
-    width: 32px; height: 32px;
+    top: var(--space-lg); 
+    right: calc(var(--panel-width) + var(--space-lg)); 
+    width: 32px; 
+    height: 32px;
     background: var(--bg-panel);
-    border: 1px solid var(--border-dark);
+    border: 1px solid var(--border-light);
     border-radius: var(--ui-radius);
     color: var(--text-main);
-    display: flex; align-items: center; justify-content: center;
+    display: flex; 
+    align-items: center; 
+    justify-content: center;
     cursor: pointer;
     transition: right 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
-#toggle-panel:hover { background: var(--bg-section); color: white; }
-.panel-hidden #toggle-panel { right: 10px; }
+
+#toggle-panel:hover { 
+    background: var(--bg-section); 
+    color: var(--text-bright); 
+}
+
+.panel-hidden #toggle-panel { 
+    right: var(--space-lg); 
+}
 
 /* ==========================================================================
    HUD Overlay (Gimbal, Stats, Watermark)
    ========================================================================== */
 #perf-stats {
-    position: absolute; top: 10px; left: 10px;
-    background: rgba(26, 26, 26, 0.8);
-    color: #a3e635;
-    padding: 4px 8px; font-family: monospace; font-size: 12px;
-    border: 1px solid #000; border-radius: var(--ui-radius);
+    position: absolute; 
+    top: var(--space-lg); 
+    left: var(--space-lg);
+    background: rgba(26, 26, 26, 0.85);
+    color: #a3e635; /* Terminal green */
+    padding: var(--space-sm) var(--space-md); 
+    font-family: monospace; 
+    font-size: 12px;
+    border: 1px solid var(--border-dark); 
+    border-radius: var(--ui-radius);
 }
 
 #help-text {
     position: absolute; 
-    top: 40px; /* Justo debajo del monitor de FPS */
-    left: 10px;
-    color: rgba(255, 255, 255, 0.5); font-size: 11px;
+    top: 48px; 
+    left: var(--space-lg);
+    color: rgba(255, 255, 255, 0.6); 
+    font-size: 11px;
     text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
 }
 
 #watermark {
     position: absolute; 
-    bottom: 25px;
-    left: 25px;
-    background: transparent;
-    border: none;
-    padding: 0;
-    color: rgba(255, 255, 255, 0.5);
-    font-size: 20px;
+    bottom: var(--space-lg);
+    left: var(--space-lg);
+    color: rgba(255, 255, 255, 0.4);
+    font-size: 16px;
     font-weight: 400;
-    text-transform: none;
-    letter-spacing: normal;
-    text-shadow: 0px 0px 4px rgba(0, 0, 0, 0.8);
+    text-shadow: 0px 2px 4px rgba(0, 0, 0, 0.8);
     pointer-events: none;
-    user-select: none;
 }
 
+/* Gimbal Spherical Control */
 #gimbal-hud {
     position: absolute;
-    bottom: 20px; right: 370px; /* Offset by panel width + margin */
-    background: rgba(40, 40, 40, 0.8);
-    border: 1px solid var(--border-dark);
+    bottom: var(--space-lg); 
+    right: calc(var(--panel-width) + var(--space-lg)); 
+    background: rgba(40, 40, 40, 0.85);
+    border: 1px solid var(--border-light);
     border-radius: var(--ui-radius);
-    padding: 10px;
-    display: flex; flex-direction: column; align-items: center;
-    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+    padding: var(--space-md) var(--space-lg);
+    display: flex; 
+    flex-direction: column; 
+    align-items: center;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.4);
     backdrop-filter: blur(4px);
     transition: right 0.3s cubic-bezier(0.4, 0.0, 0.2, 1);
 }
 
-.panel-hidden #gimbal-hud { right: 20px; }
+.panel-hidden #gimbal-hud { 
+    right: var(--space-lg); 
+}
 
 .gimbal-label {
-    font-size: 10px; color: var(--text-muted);
-    margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.5px;
+    font-size: 10px; 
+    color: var(--text-muted);
+    margin-bottom: var(--space-md); 
+    text-transform: uppercase; 
+    letter-spacing: 0.5px;
 }
 
 #gimbal-circle {
     position: relative;
-    width: 100px; height: 100px;
-    background: #1a1a1a;
+    width: 90px; 
+    height: 90px;
+    background: var(--bg-input);
     border: 2px solid var(--border-light);
     border-radius: 50%;
     cursor: crosshair;
@@ -318,37 +383,51 @@ input[type=color]::-webkit-color-swatch { border: none; border-radius: 2px; }
         linear-gradient(rgba(255, 255, 255, 0.1) 1px, transparent 1px),
         linear-gradient(90deg, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
     background-size: 100% 50%, 50% 100%;
-    background-repeat: no-repeat; background-position: center;
+    background-repeat: no-repeat; 
+    background-position: center;
 }
 
 #gimbal-dot {
-    position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%);
-    width: 12px; height: 12px;
-    background-color: #fbbf24; border-radius: 50%;
-    box-shadow: 0 0 5px #fbbf24; pointer-events: none;
+    position: absolute; 
+    top: 50%; 
+    left: 50%; 
+    transform: translate(-50%, -50%);
+    width: 10px; 
+    height: 10px;
+    background-color: #fbbf24; /* Sun color */
+    border-radius: 50%;
+    box-shadow: 0 0 8px #fbbf24; 
+    pointer-events: none;
 }
 
 /* ==========================================================================
-   Responsive (Mobile)
+   Responsive (Mobile Fallback)
    ========================================================================== */
 @media (max-width: 768px) {
     #panel {
-        position: absolute; right: 0; top: 0;
-        width: 100%; height: 100%;
+        position: absolute; 
+        right: 0; 
+        top: 0;
+        width: 100%; 
+        height: 100%;
     }
 
     #toggle-panel { 
-        position: absolute; right: 15px; top: 15px;
-        z-index: 100; /* Ensure button stays above modal panel */
+        position: absolute; 
+        right: var(--space-lg); 
+        top: var(--space-lg);
+        z-index: 100;
     }
     
-    .panel-hidden #toggle-panel { right: 15px; }
+    .panel-hidden #toggle-panel { right: var(--space-lg); }
 
     #gimbal-hud {
-        bottom: 15px; right: 15px;
-        transform: scale(0.85); transform-origin: bottom right;
+        bottom: var(--space-lg); 
+        right: var(--space-lg);
+        transform: scale(0.85); 
+        transform-origin: bottom right;
     }
-    .panel-hidden #gimbal-hud { right: 15px; }
+    .panel-hidden #gimbal-hud { right: var(--space-lg); }
     
-    #watermark { display: none; } /* Hide watermark on small screens to save space */
+    #watermark { display: none; }
 }

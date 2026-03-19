@@ -6,33 +6,28 @@ in vec2 v_uv;
 out vec4 fragColor;
 
 // ============================================================================
-// UNIFORMS & CONSTANTS
+// UNIFORMS: SYSTEM & CAMERA
 // ============================================================================
 uniform vec2 u_resolution;
 uniform float u_time;
 uniform int u_frame;
-
-// Camera & Volume
 uniform vec3 u_camPos;
 uniform vec3 u_camTarget;
+
+// ============================================================================
+// UNIFORMS: VOLUME & SHAPE
+// ============================================================================
 uniform vec3 u_boxSize;
-
-// Textures
-uniform sampler3D u_noiseTex;
-uniform sampler3D u_detailTex;
-uniform sampler2D u_shadowTex;
-
-// Shape Parameters
 uniform float u_baseScale;
 uniform float u_coverage;
 uniform float u_densityMult;
 uniform float u_detailScale;
 uniform float u_detailWeight;
 uniform vec2 u_windOffset;
-uniform sampler2D u_blueNoiseTex;
-uniform vec2 u_jitter;
 
-// Lighting Parameters
+// ============================================================================
+// UNIFORMS: OPTICS & LIGHTING
+// ============================================================================
 uniform float u_lightAbsorb;
 uniform float u_scattering;
 uniform vec3 u_sunDir;
@@ -40,20 +35,20 @@ uniform vec3 u_cloudColor;
 uniform vec3 u_skyColor;
 uniform int u_steps;
 
+// ============================================================================
+// UNIFORMS: TEXTURES
+// ============================================================================
+uniform sampler3D u_noiseTex;
+uniform sampler3D u_detailTex;
+uniform sampler2D u_shadowTex;
+uniform sampler2D u_blueNoiseTex;
+uniform vec2 u_jitter; // TAA Sub-pixel offset
+
 const float PI = 3.14159265359;
 
 // ============================================================================
-// MATH & UTILS
+// UTILITIES (Shared with shadow.frag)
 // ============================================================================
-float getDither() {
-    // Map 1 screen pixel to 1 texel of the Blue Noise texture (e.g., 256x256)
-    vec2 noiseUV = gl_FragCoord.xy / 256.0; 
-    float blueNoise = texture(u_blueNoiseTex, noiseUV).r;
-    
-    // Golden ratio temporal offset for perfect TAA distribution
-    return fract(blueNoise + float(u_frame % 64) * 0.61803398875);
-}
-
 float remap(float val, float oldMin, float oldMax, float newMin, float newMax) {
     return newMin + (val - oldMin) * (newMax - newMin) / (oldMax - oldMin);
 }
@@ -70,6 +65,22 @@ vec2 intersectAABB(vec3 boundsMin, vec3 boundsMax, vec3 ro, vec3 rd) {
     return vec2(max(0.0, dstA), max(0.0, dstB - max(0.0, dstA)));
 }
 
+void getSunBasis(vec3 sunDir, out vec3 sunRight, out vec3 sunUp) {
+    vec3 up = abs(sunDir.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
+    sunRight = normalize(cross(up, sunDir));
+    sunUp = normalize(cross(sunDir, sunRight));
+}
+
+// ============================================================================
+// RENDERING SPECIFICS
+// ============================================================================
+float getDither() {
+    vec2 noiseUV = gl_FragCoord.xy / 256.0; 
+    float blueNoise = texture(u_blueNoiseTex, noiseUV).r;
+    // Golden ratio offset for optimal TAA distribution over frames
+    return fract(blueNoise + float(u_frame % 64) * 0.61803398875);
+}
+
 mat3 setCamera(in vec3 ro, in vec3 ta, float cr) {
     vec3 cw = normalize(ta - ro);
     vec3 cp = vec3(sin(cr), cos(cr), 0.0);
@@ -78,20 +89,9 @@ mat3 setCamera(in vec3 ro, in vec3 ta, float cr) {
     return mat3(cu, cv, cw);
 }
 
-void getSunBasis(vec3 sunDir, out vec3 sunRight, out vec3 sunUp) {
-    vec3 up = abs(sunDir.y) > 0.99 ? vec3(1.0, 0.0, 0.0) : vec3(0.0, 1.0, 0.0);
-    sunRight = normalize(cross(up, sunDir));
-    sunUp = normalize(cross(sunDir, sunRight));
-}
-
-// ============================================================================
-// PHYSICS & DENSITY
-// ============================================================================
 float hg(float cosTheta, float g) {
     float g2 = g * g;
-    float num = 1.0 - g2;
-    float den = 4.0 * PI * pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5);
-    return num / den;
+    return (1.0 - g2) / (4.0 * PI * pow(1.0 + g2 - 2.0 * g * cosTheta, 1.5));
 }
 
 float dualLobehg(float cosTheta, float g) {
@@ -100,8 +100,10 @@ float dualLobehg(float cosTheta, float g) {
     return mix(forward, backward, 0.3);
 }
 
+// ============================================================================
+// DENSITY SAMPLING (Must perfectly match shadow.frag)
+// ============================================================================
 float getDensity(vec3 p) {
-    // 1. AABB Masking (Height gradient and edge fading)
     float heightPercent = (p.y + u_boxSize.y) / (2.0 * u_boxSize.y);
     float heightGradient = smoothstep(0.0, 0.15, heightPercent) * smoothstep(1.0, 0.4, heightPercent);
     
@@ -111,29 +113,25 @@ float getDensity(vec3 p) {
     float mask = heightGradient * edgeFade;
     if (mask <= 0.0) return 0.0; 
     
-    // 2. Base Shape Noise
     vec3 pos = p + vec3(u_windOffset.x, 0.0, u_windOffset.y);
     
-    // Use textureLod to avoid implicit derivative issues inside loops
+    // Lod 0 strictly required inside loops to prevent derivative divergence
     float baseNoise = textureLod(u_noiseTex, pos * u_baseScale * 0.1, 0.0).r;
     float baseDensity = remap(baseNoise, 1.0 - u_coverage, 1.0, 0.0, 1.0);
     baseDensity *= mask; 
     
     if (baseDensity <= 0.0) return 0.0;
     
-    // 3. Fine Detail Erosion
     if (u_detailWeight > 0.0) {
         float detailNoise = textureLod(u_detailTex, pos * u_detailScale * 0.1, 0.0).r;
         float erosion = detailNoise * u_detailWeight;
-        
-        // Pre-multiplied subtraction to preserve the dense core of the cloud
-        baseDensity = baseDensity - erosion * (1.0 - baseDensity);
+        baseDensity = baseDensity - erosion * (1.0 - baseDensity); // Pre-multiplied subtraction
     }
     
     return max(0.0, baseDensity) * u_densityMult;
 }
 
-// OPTIMIZATION: Passed pre-calculated sun basis to avoid inner-loop recalculations
+// Evaluates lighting at current step using the pre-baked shadow map
 float lightMarch(vec3 p, vec3 sunRight, vec3 sunUp, float orthoSize, vec3 sunDir) {
     vec2 shadowUV = vec2(
         dot(p, sunRight) / (orthoSize * 2.0) + 0.5,
@@ -141,7 +139,6 @@ float lightMarch(vec3 p, vec3 sunRight, vec3 sunUp, float orthoSize, vec3 sunDir
     );
 
     float totalDensity = textureLod(u_shadowTex, shadowUV, 0.0).r;
-    
     float distAlongSun = dot(p, sunDir);
     float depthFraction = clamp((distAlongSun / orthoSize) * 0.5 + 0.5, 0.0, 1.0);
     
@@ -150,10 +147,9 @@ float lightMarch(vec3 p, vec3 sunRight, vec3 sunUp, float orthoSize, vec3 sunDir
 }
 
 // ============================================================================
-// MAIN RAYMARCHING
+// MAIN INTEGRATION LOOP
 // ============================================================================
 void main() {
-    // TAA Sub-pixel Jitter
     vec2 fragCoordJittered = gl_FragCoord.xy + u_jitter;
     vec2 uv = (fragCoordJittered - 0.5 * u_resolution.xy) / u_resolution.y;
     
@@ -161,17 +157,15 @@ void main() {
     vec3 rd = normalize(camMat * vec3(uv, 1.2)); 
     vec3 sunDir = normalize(u_sunDir);
     
-    // Pre-calculate Sun Basis once per pixel (Massive optimization)
     vec3 sunRight, sunUp;
     getSunBasis(sunDir, sunRight, sunUp);
     float orthoSize = length(u_boxSize);
     
-    // Base Sky Background
+    // Background rendering
     vec3 bgCol = u_skyColor;
     float skySunDot = max(0.0, dot(rd, sunDir));
-    bgCol += vec3(1.0, 0.9, 0.7) * pow(skySunDot, 800.0) * 2.0; // Fake Sun Glow
+    bgCol += vec3(1.0, 0.9, 0.7) * pow(skySunDot, 800.0) * 2.0; 
 
-    // Basic Ground Grid
     if (rd.y < 0.0) {
         float tGround = (-u_boxSize.y - 1.0 - u_camPos.y) / rd.y;
         if (tGround > 0.0) {
@@ -193,12 +187,9 @@ void main() {
         
         float transmittance = 1.0; 
         vec3 lightEnergy = vec3(0.0);
-        
-        // Ray offset based on blue noise dithering
-        float t = currentStepSize * getDither();
+        float t = currentStepSize * getDither(); // Jitter start position
         
         for(int i = 0; i < 150; i++) {
-            // Early exit if bounds reached or light is fully blocked
             if(i >= u_steps || t >= hitInfo.y || transmittance < 0.01) break;
             
             vec3 p = u_camPos + rd * (hitInfo.x + t);
@@ -206,28 +197,21 @@ void main() {
             
             if (density > 0.0) {
                 float lightTransmittance = lightMarch(p, sunRight, sunUp, orthoSize, sunDir);
-                
-                // Silver-lining / Edge illumination powder effect
-                float powder = 1.0 - exp(-density * 2.0); 
+                float powder = 1.0 - exp(-density * 2.0); // Silver-lining effect
                 
                 vec3 ambientLight = u_cloudColor * 0.25; 
                 vec3 directionalLight = u_cloudColor * lightTransmittance * powder * phaseVal;
                 
-                // Beer-Lambert Law for attenuation
                 float stepTransmittance = exp(-density * currentStepSize * u_lightAbsorb);
                 
-                // Accumulate scattered light
                 lightEnergy += density * currentStepSize * transmittance * (ambientLight + directionalLight);
                 transmittance *= stepTransmittance;
-                
                 t += currentStepSize;
             } else {
-                // Empty space skipping (Optimized step multiplier)
-                t += currentStepSize * 2.0; 
+                t += currentStepSize * 2.0; // Space skipping optimization
             }
         }
         
-        // Alpha blending (Pre-multiplied)
         finalColor = bgCol * transmittance + lightEnergy;
     }
     

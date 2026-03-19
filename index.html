@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Volumetric clouds simulator</title>
+    <title>Volumetric Clouds Simulation | WebGL 2</title>
     <link rel="stylesheet" href="css/style.css">
     
     <script src="js/gl-utils.js" defer></script>
@@ -48,28 +48,29 @@
             </header>
 
             <div class="panel-content">
+                
                 <details class="inspector-section" open>
                     <summary>Shape (Base)</summary>
                     <div class="section-body">
                         <div class="prop-row">
                             <label for="in_coverage">Coverage</label>
                             <div class="prop-control">
-                                <input type="range" id="in_coverage" min="0" max="1" step="0.01" value="0.55">
-                                <span class="val-display" id="val_coverage">0.55</span>
+                                <input type="range" id="in_coverage" min="0" max="1" step="0.01">
+                                <span class="val-display" id="val_coverage"></span>
                             </div>
                         </div>
                         <div class="prop-row">
                             <label for="in_densityMult">Density Multiplier</label>
                             <div class="prop-control">
-                                <input type="range" id="in_densityMult" min="0.1" max="20.0" step="0.1" value="11.0">
-                                <span class="val-display" id="val_densityMult">11.0</span>
+                                <input type="range" id="in_densityMult" min="0.1" max="20.0" step="0.1">
+                                <span class="val-display" id="val_densityMult"></span>
                             </div>
                         </div>
                         <div class="prop-row">
                             <label for="in_baseScale" title="Requires re-baking">Noise Scale</label>
                             <div class="prop-control">
-                                <input type="range" id="in_baseScale" min="0.5" max="3.0" step="0.1" value="1.8">
-                                <span class="val-display" id="val_baseScale">1.8</span>
+                                <input type="range" id="in_baseScale" min="0.5" max="3.0" step="0.1">
+                                <span class="val-display" id="val_baseScale"></span>
                             </div>
                         </div>
                     </div>
@@ -81,15 +82,15 @@
                         <div class="prop-row">
                             <label for="in_detailScale">Detail Scale</label>
                             <div class="prop-control">
-                                <input type="range" id="in_detailScale" min="1.0" max="10.0" step="0.1" value="5.0">
-                                <span class="val-display" id="val_detailScale">5.0</span>
+                                <input type="range" id="in_detailScale" min="1.0" max="10.0" step="0.1">
+                                <span class="val-display" id="val_detailScale"></span>
                             </div>
                         </div>
                         <div class="prop-row">
                             <label for="in_detailWeight">Erosion Strength</label>
                             <div class="prop-control">
-                                <input type="range" id="in_detailWeight" min="0.0" max="1.0" step="0.01" value="0.3">
-                                <span class="val-display" id="val_detailWeight">0.3</span>
+                                <input type="range" id="in_detailWeight" min="0.0" max="1.0" step="0.01">
+                                <span class="val-display" id="val_detailWeight"></span>
                             </div>
                         </div>
                     </div>
@@ -101,27 +102,27 @@
                         <div class="prop-row">
                             <label for="in_lightAbsorb">Extinction</label>
                             <div class="prop-control">
-                                <input type="range" id="in_lightAbsorb" min="0.1" max="3.0" step="0.05" value="1.3">
-                                <span class="val-display" id="val_lightAbsorb">1.3</span>
+                                <input type="range" id="in_lightAbsorb" min="0.1" max="3.0" step="0.05">
+                                <span class="val-display" id="val_lightAbsorb"></span>
                             </div>
                         </div>
                         <div class="prop-row">
                             <label for="in_scattering">HG Scattering</label>
                             <div class="prop-control">
-                                <input type="range" id="in_scattering" min="0.0" max="0.95" step="0.01" value="0.95">
-                                <span class="val-display" id="val_scattering">0.95</span>
+                                <input type="range" id="in_scattering" min="0.0" max="0.95" step="0.01">
+                                <span class="val-display" id="val_scattering"></span>
                             </div>
                         </div>
                         <div class="prop-row">
                             <label for="in_cloudColor">Albedo</label>
                             <div class="prop-control">
-                                <input type="color" id="in_cloudColor" value="#ffffff">
+                                <input type="color" id="in_cloudColor">
                             </div>
                         </div>
                         <div class="prop-row">
                             <label for="in_skyColor">Sky Zenith</label>
                             <div class="prop-control">
-                                <input type="color" id="in_skyColor" value="#1e293b">
+                                <input type="color" id="in_skyColor">
                             </div>
                         </div>
                     </div>
@@ -133,22 +134,22 @@
                         <div class="prop-row">
                             <label for="in_resScale">Res. Scale</label>
                             <div class="prop-control">
-                                <input type="range" id="in_resScale" min="0.2" max="1.0" step="0.05" value="0.5">
-                                <span class="val-display" id="val_resScale">0.5</span>
+                                <input type="range" id="in_resScale" min="0.2" max="1.0" step="0.05">
+                                <span class="val-display" id="val_resScale"></span>
                             </div>
                         </div>
                         <div class="prop-row">
                             <label for="in_steps">Ray Steps</label>
                             <div class="prop-control">
-                                <input type="range" id="in_steps" min="15" max="100" step="1" value="40">
-                                <span class="val-display" id="val_steps">40</span>
+                                <input type="range" id="in_steps" min="15" max="100" step="1">
+                                <span class="val-display" id="val_steps"></span>
                             </div>
                         </div>
                         <div class="prop-row">
                             <label for="in_windGlobal">Wind Speed</label>
                             <div class="prop-control">
-                                <input type="range" id="in_windGlobal" min="0.0" max="2.0" step="0.1" value="0.3">
-                                <span class="val-display" id="val_windGlobal">0.3</span>
+                                <input type="range" id="in_windGlobal" min="0.0" max="2.0" step="0.1">
+                                <span class="val-display" id="val_windGlobal"></span>
                             </div>
                         </div>
                     </div>
